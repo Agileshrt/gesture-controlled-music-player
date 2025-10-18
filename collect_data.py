@@ -4,15 +4,15 @@ import numpy as np
 import os
 
 # -------------------------------
-# 1. Gesture Names (edit here)
+# 1. Gesture Names (edit if needed)
 # -------------------------------
 actions = ['play', 'pause', 'next', 'previous', 'volume_up', 'volume_down']
 
 # -------------------------------
 # 2. Settings
 # -------------------------------
-seq_length = 30   # number of frames per sequence
-num_sequences = 50  # how many sequences you want to collect per gesture
+seq_length = 30       # number of frames per sequence
+num_sequences = 50    # how many new sequences you want to collect per gesture
 
 # Create dataset folder
 os.makedirs('dataset', exist_ok=True)
@@ -30,13 +30,18 @@ cap = cv2.VideoCapture(0)
 for action in actions:
     action_dir = os.path.join('dataset', action)
     os.makedirs(action_dir, exist_ok=True)
-    print(f"\n📸 Collecting data for gesture: '{action}'")
 
-    for seq_num in range(num_sequences):
-        print(f"  ▶ Sequence {seq_num+1}/{num_sequences} ...")
+    # 🔸 Check how many files already exist for this gesture
+    existing_files = len([f for f in os.listdir(action_dir) if f.endswith('.npy')])
+    print(f"\n📸 Collecting data for gesture: '{action}'")
+    print(f"   Already have {existing_files} sequences.")
+
+    # 🔸 Start numbering from the last file number
+    for seq_num in range(existing_files, existing_files + num_sequences):
+        print(f"  ▶ Sequence {seq_num+1}/{existing_files + num_sequences} ...")
         data = []
 
-        # Show countdown before each sequence (for you to get ready)
+        # Countdown before recording
         for countdown in range(3, 0, -1):
             ret, frame = cap.read()
             frame = cv2.flip(frame, 1)
@@ -45,7 +50,7 @@ for action in actions:
             cv2.imshow('Collecting Gesture', frame)
             cv2.waitKey(1000)
 
-        # Collect 30 frames per sequence
+        # Record sequence
         while len(data) < seq_length:
             ret, frame = cap.read()
             if not ret:
@@ -62,7 +67,6 @@ for action in actions:
                         landmark.extend([lm.x, lm.y, lm.z])
                     data.append(landmark)
 
-            # Show live feed
             cv2.putText(frame, f"{action} | Frame: {len(data)}/{seq_length}", (10, 30),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
             cv2.imshow('Collecting Gesture', frame)
@@ -70,7 +74,7 @@ for action in actions:
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
-        # Save the collected sequence
+        # Save collected sequence
         if len(data) == seq_length:
             np.save(os.path.join(action_dir, f"{seq_num}.npy"), np.array(data))
             print(f"    ✅ Saved sequence {seq_num+1}")
